@@ -1,0 +1,57 @@
+name: Build DXT Extension
+
+on: 
+  push:
+    branches: [ master ]
+  pull_request:
+  release:
+    types: [ published ]
+
+jobs:
+  dxt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        # 22 because it's built-in to Claude Desktop
+        node-version: [lts/*, current, '22']
+    steps:
+      - name: Checkout ${{ github.sha }}
+        uses: actions/checkout@v4
+      
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build and test DXT package
+        run: npm run test -- 'src/e2e.test.ts'
+        env:
+          RUN_DXT_TEST: TRUE
+      
+      # Only upload artifacts and release assets from the LTS build to avoid duplicates
+      - name: Prepare artifact
+        if: matrix.node-version == 'lts/*'
+        run: |
+          mkdir -p .github/tmp
+          unzip mcp-server.dxt -d .github/tmp
+      
+      - name: Publish DXT artifact
+        if: matrix.node-version == 'lts/*'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-server-dxt
+          path: .github/tmp/*
+      
+      - name: Upload DXT package as release asset
+        if: github.event_name == 'release' && matrix.node-version == 'lts/*'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./mcp-server.dxt

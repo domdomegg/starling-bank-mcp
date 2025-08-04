@@ -1,12 +1,12 @@
 {
-  "name": "typescript-library-template",
+  "name": "starling-bank-mcp",
   "version": "0.0.0",
-  "description": "Template for creating TypeScript libraries",
+  "description": "Allow AI systems to view and control your Starling Bank account via MCP",
   "license": "MIT",
   "author": "Adam Jones (domdomegg)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/domdomegg/typescript-library-template.git"
+    "url": "https://github.com/domdomegg/starling-bank-mcp.git"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,8 +14,9 @@
     "dist"
   ],
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest --watch",
+    "start": "npm run build && node ./dist/index.js",
+    "test": "STARLING_BANK_ACCESS_TOKEN=test-token vitest run",
+    "test:watch": "STARLING_BANK_ACCESS_TOKEN=test-token vitest --watch",
     "lint": "eslint",
     "clean": "rm -rf dist",
     "build": "tsc --project tsconfig.build.json",
@@ -23,10 +24,16 @@
   },
   "devDependencies": {
     "@tsconfig/node-lts": "^22.0.2",
+    "@types/node": "^24.1.0",
     "eslint": "^9.32.0",
     "eslint-config-domdomegg": "^2.0.9",
     "tsconfig-domdomegg": "^1.0.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.1",
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.24.6"
   }
 }

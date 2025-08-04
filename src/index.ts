@@ -1,3 +1,20 @@
-export const sum = (a: number, b: number): number => a + b;
+#!/usr/bin/env node
+import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
+import {server} from './server.js';
 
-export const multiply = (a: number, b: number): number => a * b;
+// Start the server
+async function main(): Promise<void> {
+	try {
+		const transport = new StdioServerTransport();
+		await server.connect(transport);
+		console.error('MCP server running on stdio');
+	} catch (error) {
+		console.error('Failed to start server:', error);
+		process.exit(1);
+	}
+}
+
+main().catch((error: unknown) => {
+	console.error('Server startup failed:', error);
+	process.exit(1);
+});

@@ -1,0 +1,59 @@
+{
+  "dxt_version": "0.1",
+  "name": "starling-bank-mcp",
+  "display_name": "Starling Bank",
+  "version": "{{VERSION}}",
+  "description": "🟣🤖 Allow AI systems to view and control your Starling Bank account via MCP",
+  "icon": "icon.png",
+  "author": {
+    "name": "Adam Jones (domdomegg)",
+    "url": "https://github.com/domdomegg"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/domdomegg/starling-bank-mcp"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "STARLING_BANK_ACCESS_TOKEN": "${user_config.api_access_token}",
+        "STARLING_BANK_PRIVATE_KEY_UID": "${user_config.api_key_uid}",
+        "STARLING_BANK_PRIVATE_KEY_PEM": "${user_config.api_key_pem}"
+      }
+    }
+  },
+  "user_config": {
+    "api_access_token": {
+      "type": "string",
+      "title": "Starling Bank Access Token",
+      "description": "Your Starling Bank personal access token. To get one, sign up for the Starling Developer Portal, link your account, and create a 'Personal Access Tokens'.",
+      "sensitive": true,
+      "required": true
+    },
+    "api_key_uid": {
+      "type": "string",
+      "title": "Starling Bank API Key UID",
+      "description": "Optional, Advanced: If you want to send payments, provide the key UID of the signing key you want to use. See https://github.com/domdomegg/starling-bank-mcp/blob/master/PAYMENT_SIGNING_SETUP.md for more details.",
+      "sensitive": true,
+      "required": false
+    },
+    "api_key_pem": {
+      "type": "string",
+      "title": "Starling Bank API Key PEM",
+      "description": "Optional, Advanced: If you want to send payments, provide the PEM-encoded signing key you want to use. See https://github.com/domdomegg/starling-bank-mcp/blob/master/PAYMENT_SIGNING_SETUP.md for more details.",
+      "sensitive": true,
+      "required": false
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=16.0.0"
+    }
+  }
+}
