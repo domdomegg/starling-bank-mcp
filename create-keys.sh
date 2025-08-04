@@ -19,6 +19,6 @@ openssl ecparam -name secp256k1 -genkey -noout -out key-api-private.pem
 openssl ec -in key-api-private.pem -pubout > key-api-public.pem
 
 openssl ecparam -name secp256k1 -genkey -noout -out key-rotation-private.pem
-openssl ec -in key-api-private.pem -pubout > key-rotation-public.pem
+openssl ec -in key-rotation-private.pem -pubout > key-rotation-public.pem
 
 echo "Successfully created API and rotation keys!"
