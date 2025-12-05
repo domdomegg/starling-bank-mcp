@@ -1,5 +1,5 @@
 {
-  "dxt_version": "0.1",
+  "manifest_version": "0.3",
   "name": "starling-bank-mcp",
   "display_name": "Starling Bank",
   "version": "{{VERSION}}",
