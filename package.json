@@ -1,6 +1,6 @@
 {
   "name": "starling-bank-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Allow AI systems to view and control your Starling Bank account via MCP",
   "license": "MIT",
   "author": "Adam Jones (domdomegg)",
