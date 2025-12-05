@@ -13,6 +13,7 @@
   "files": [
     "dist"
   ],
+  "mcpName": "io.github.domdomegg/starling-bank-mcp",
   "scripts": {
     "start": "npm run build && node ./dist/index.js",
     "test": "STARLING_BANK_ACCESS_TOKEN=test-token vitest run",
@@ -20,6 +21,7 @@
     "lint": "eslint",
     "clean": "rm -rf dist",
     "build": "tsc --project tsconfig.build.json",
+    "build:mcpb": "./build-mcpb.sh",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "devDependencies": {
