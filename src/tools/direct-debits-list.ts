@@ -16,18 +16,18 @@ const directDebitMandate = z.object({
 	status: z.string().optional(),
 	source: z.string().optional(),
 	created: z.string().optional(),
-	cancelled: z.string().optional(),
-	nextDate: z.string().optional(),
-	lastDate: z.string().optional(),
+	cancelled: z.string().nullable().optional(),
+	nextDate: z.string().nullable().optional(),
+	lastDate: z.string().nullable().optional(),
 	originatorName: z.string().optional(),
 	originatorUid: z.string().optional(),
-	merchantUid: z.string().optional(),
+	merchantUid: z.string().nullable().optional(),
 	lastPayment: z.object({
 		lastDate: z.string().optional(),
 		lastAmount: currencyAndAmount.optional(),
-	}).optional(),
+	}).nullable().optional(),
 	accountUid: z.string().optional(),
-	categoryUid: z.string().optional(),
+	categoryUid: z.string().nullable().optional(),
 });
 
 const outputSchema = z.object({

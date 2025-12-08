@@ -6,7 +6,9 @@ import {
 	describe, test, expect, beforeAll, afterAll,
 } from 'vitest';
 import {z} from 'zod';
-import {makeStarlingApiCall} from './utils/starling-api.js';
+import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
+import type {JSONRPCMessage, JSONRPCRequest, JSONRPCResponse} from '@modelcontextprotocol/sdk/types.js';
+import {createServer} from './server.js';
 
 const TOKEN = process.env.STARLING_BANK_ACCESS_TOKEN || 'test-token';
 
@@ -15,9 +17,12 @@ const accountUid = 'bbccbbcc-bbcc-bbcc-bbcc-bbccbbccbbcc';
 const categoryUid = 'ccddccdd-ccdd-ccdd-ccdd-ccddccddccdd';
 
 let prism: ChildProcess | null = null;
+let callTool: (name: string, args?: Record<string, unknown>) => Promise<unknown>;
+let closeServer: () => Promise<void>;
 
 describe('Output schema validation', () => {
 	beforeAll(async () => {
+		// Start Prism mock server
 		prism = spawn('npx', ['prism', 'mock', 'openapi.json', '-p', '4010'], {
 			stdio: 'pipe',
 		});
@@ -36,13 +41,46 @@ describe('Output schema validation', () => {
 
 			prism!.on('error', reject);
 		});
+
+		// Set up MCP server with InMemoryTransport
+		const server = createServer({accessToken: TOKEN});
+		const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair();
+		await server.connect(serverTransport);
+
+		callTool = async (name: string, args: Record<string, unknown> = {}) => {
+			const request: JSONRPCRequest = {
+				jsonrpc: '2.0',
+				id: Math.random().toString(),
+				method: 'tools/call',
+				params: {name, arguments: args},
+			};
+
+			return new Promise((resolve, reject) => {
+				clientTransport.onmessage = (response: JSONRPCMessage) => {
+					const typed = response as JSONRPCResponse;
+					if ('result' in typed) {
+						resolve(typed.result);
+					} else {
+						reject(new Error('No result in response'));
+					}
+				};
+
+				clientTransport.send(request).catch(reject);
+			});
+		};
+
+		closeServer = async () => {
+			await server.close();
+		};
 	});
 
-	afterAll(() => {
+	afterAll(async () => {
 		prism?.kill();
+		await closeServer?.();
 	});
-	test('accounts_list schema', async () => {
-		const result = await makeStarlingApiCall('/api/v2/accounts', TOKEN);
+
+	test('accounts_list', async () => {
+		const result = await callTool('accounts_list') as {structuredContent?: unknown};
 		const schema = z.object({
 			accounts: z.array(z.object({
 				accountUid: z.string(),
@@ -53,11 +91,12 @@ describe('Output schema validation', () => {
 				name: z.string(),
 			})),
 		});
-		expect(() => schema.parse(result)).not.toThrow();
+		expect(result.structuredContent).toBeDefined();
+		expect(() => schema.parse(result.structuredContent)).not.toThrow();
 	});
 
-	test('account_balance_get schema', async () => {
-		const result = await makeStarlingApiCall(`/api/v2/accounts/${accountUid}/balance`, TOKEN);
+	test('account_balance_get', async () => {
+		const result = await callTool('account_balance_get', {accountUid}) as {structuredContent?: unknown};
 		const amount = z.object({currency: z.string(), minorUnits: z.number()});
 		const schema = z.object({
 			clearedBalance: amount.optional(),
@@ -68,11 +107,12 @@ describe('Output schema validation', () => {
 			totalClearedBalance: amount.optional(),
 			totalEffectiveBalance: amount.optional(),
 		});
-		expect(() => schema.parse(result)).not.toThrow();
+		expect(result.structuredContent).toBeDefined();
+		expect(() => schema.parse(result.structuredContent)).not.toThrow();
 	});
 
-	test('account_identifiers_get schema', async () => {
-		const result = await makeStarlingApiCall(`/api/v2/accounts/${accountUid}/identifiers`, TOKEN);
+	test('account_identifiers_get', async () => {
+		const result = await callTool('account_identifiers_get', {accountUid}) as {structuredContent?: unknown};
 		const schema = z.object({
 			accountIdentifier: z.string().optional(),
 			bankIdentifier: z.string().optional(),
@@ -84,11 +124,12 @@ describe('Output schema validation', () => {
 				accountIdentifier: z.string().optional(),
 			})).optional(),
 		});
-		expect(() => schema.parse(result)).not.toThrow();
+		expect(result.structuredContent).toBeDefined();
+		expect(() => schema.parse(result.structuredContent)).not.toThrow();
 	});
 
-	test('payees_list schema', async () => {
-		const result = await makeStarlingApiCall('/api/v2/payees', TOKEN);
+	test('payees_list', async () => {
+		const result = await callTool('payees_list') as {structuredContent?: unknown};
 		const schema = z.object({
 			payees: z.array(z.object({
 				payeeUid: z.string(),
@@ -96,54 +137,62 @@ describe('Output schema validation', () => {
 				payeeType: z.string(),
 			}).loose()),
 		});
-		expect(() => schema.parse(result)).not.toThrow();
+		expect(result.structuredContent).toBeDefined();
+		expect(() => schema.parse(result.structuredContent)).not.toThrow();
 	});
 
-	test('cards_list schema', async () => {
-		const result = await makeStarlingApiCall('/api/v2/cards', TOKEN);
+	test('cards_list', async () => {
+		const result = await callTool('cards_list') as {structuredContent?: unknown};
 		const schema = z.object({
 			cards: z.array(z.object({
 				cardUid: z.string(),
 				enabled: z.boolean(),
 			}).loose()),
 		});
-		expect(() => schema.parse(result)).not.toThrow();
+		expect(result.structuredContent).toBeDefined();
+		expect(() => schema.parse(result.structuredContent)).not.toThrow();
 	});
 
-	test('direct_debits_list schema', async () => {
-		const result = await makeStarlingApiCall(`/api/v2/direct-debit/mandates/account/${accountUid}`, TOKEN);
+	test('direct_debits_list', async () => {
+		const result = await callTool('direct_debits_list', {accountUid}) as {structuredContent?: unknown};
 		const schema = z.object({
 			mandates: z.array(z.object({}).loose()),
 		});
-		expect(() => schema.parse(result)).not.toThrow();
+		expect(result.structuredContent).toBeDefined();
+		expect(() => schema.parse(result.structuredContent)).not.toThrow();
 	});
 
-	test('standing_orders_list schema', async () => {
-		const result = await makeStarlingApiCall(`/api/v2/payments/local/account/${accountUid}/category/${categoryUid}/standing-orders`, TOKEN);
+	test('standing_orders_list', async () => {
+		const result = await callTool('standing_orders_list', {accountUid, categoryUid}) as {structuredContent?: unknown};
 		const schema = z.object({
 			standingOrders: z.array(z.object({}).loose()),
 		});
-		expect(() => schema.parse(result)).not.toThrow();
+		expect(result.structuredContent).toBeDefined();
+		expect(() => schema.parse(result.structuredContent)).not.toThrow();
 	});
 
-	test('savings_goals_list schema', async () => {
-		const result = await makeStarlingApiCall(`/api/v2/account/${accountUid}/savings-goals`, TOKEN);
+	test('savings_goals_list', async () => {
+		const result = await callTool('savings_goals_list', {accountUid}) as {structuredContent?: unknown};
 		const schema = z.object({
 			savingsGoalList: z.array(z.object({
 				state: z.string(),
 			}).loose()),
 		});
-		expect(() => schema.parse(result)).not.toThrow();
+		expect(result.structuredContent).toBeDefined();
+		expect(() => schema.parse(result.structuredContent)).not.toThrow();
 	});
 
-	test('transactions_list schema', async () => {
-		const result = await makeStarlingApiCall(
-			`/api/v2/feed/account/${accountUid}/category/${categoryUid}/transactions-between?minTransactionTimestamp=2024-01-01T00:00:00.000Z&maxTransactionTimestamp=2024-12-31T23:59:59.999Z`,
-			TOKEN,
-		);
+	test('transactions_list', async () => {
+		const result = await callTool('transactions_list', {
+			accountUid,
+			categoryUid,
+			minTransactionTimestamp: '2024-01-01T00:00:00.000Z',
+			maxTransactionTimestamp: '2024-12-31T23:59:59.999Z',
+		}) as {structuredContent?: unknown};
 		const schema = z.object({
 			feedItems: z.array(z.object({}).loose()),
 		});
-		expect(() => schema.parse(result)).not.toThrow();
+		expect(result.structuredContent).toBeDefined();
+		expect(() => schema.parse(result.structuredContent)).not.toThrow();
 	});
 });
