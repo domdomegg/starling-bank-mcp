@@ -1,7 +1,7 @@
 import {readdir} from 'node:fs/promises';
 import {describe, test, expect} from 'vitest';
 import {join} from 'node:path';
-import {createServer} from '../server.js';
+import {createServer} from '../index.js';
 
 describe('tools index', () => {
 	test('should register all tool files', async () => {
