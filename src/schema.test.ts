@@ -9,7 +9,7 @@ import {
 import {z} from 'zod';
 import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import type {JSONRPCMessage, JSONRPCRequest, JSONRPCResponse} from '@modelcontextprotocol/sdk/types.js';
-import {createServer} from './server.js';
+import {createServer} from './index.js';
 
 const OPENAPI_URL = 'https://api.starlingbank.com/api/openapi.json';
 const OPENAPI_PATH = 'openapi.json';
