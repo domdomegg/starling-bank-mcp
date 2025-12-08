@@ -1,34 +1,45 @@
-import {type z} from 'zod';
-import {type Tool} from '@modelcontextprotocol/sdk/types.js';
-import {createPaymentSchema, getInputSchema} from '../utils/schemas.js';
+import {z} from 'zod';
+import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {Config} from './types.js';
+import {categoryUid, amount} from './schemas.js';
 import {makeSignedStarlingApiCall} from '../utils/starling-api.js';
+import {jsonResult} from '../utils/response.js';
 import {randomUUID} from 'node:crypto';
 
-export const schema = createPaymentSchema;
+const outputSchema = z.object({
+	paymentOrderUid: z.string().optional(),
+});
 
-export const tool: Tool = {
-	name: 'payment_create',
-	description: 'Create a payment to an existing payee',
-	inputSchema: getInputSchema(schema),
-	annotations: {
-		title: 'Create payment',
-		readOnlyHint: false,
-	},
-};
-
-export async function handler(args: z.infer<typeof schema>, accessToken: string) {
-	const result = await makeSignedStarlingApiCall(
-		`/api/v2/payments/local/account/${args.accountUid}/category/${args.categoryUid}`,
-		accessToken,
-		'PUT',
+export function registerPaymentCreate(server: McpServer, config: Config): void {
+	server.registerTool(
+		'payment_create',
 		{
-			destinationPayeeAccountUid: args.destinationPayeeAccountUid,
-			reference: args.reference,
-			amount: args.amount,
-			externalIdentifier: randomUUID(),
+			title: 'Create payment',
+			description: 'Create a payment to an existing payee',
+			inputSchema: {
+				...categoryUid,
+				destinationPayeeAccountUid: z.string().describe('The UID of the payee account to pay'),
+				reference: z.string().describe('Payment reference'),
+				amount,
+			},
+			outputSchema,
+			annotations: {
+				readOnlyHint: false,
+			},
+		},
+		async ({accountUid, categoryUid, destinationPayeeAccountUid, reference, amount}) => {
+			const result = await makeSignedStarlingApiCall(
+				`/api/v2/payments/local/account/${accountUid}/category/${categoryUid}`,
+				config.accessToken,
+				'PUT',
+				{
+					destinationPayeeAccountUid,
+					reference,
+					amount,
+					externalIdentifier: randomUUID(),
+				},
+			);
+			return jsonResult(outputSchema.parse(result));
 		},
 	);
-	return {
-		content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
-	};
 }

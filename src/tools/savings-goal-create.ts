@@ -1,32 +1,40 @@
-import {type z} from 'zod';
-import {type Tool} from '@modelcontextprotocol/sdk/types.js';
-import {createSavingsGoalSchema, getInputSchema} from '../utils/schemas.js';
+import {z} from 'zod';
+import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {Config} from './types.js';
+import {accountUid, amount} from './schemas.js';
+import {createOrUpdateSavingsGoalOutput} from './output-schemas.js';
 import {makeStarlingApiCall} from '../utils/starling-api.js';
+import {jsonResult} from '../utils/response.js';
 
-export const schema = createSavingsGoalSchema;
-
-export const tool: Tool = {
-	name: 'savings_goal_create',
-	description: 'Create a new savings goal',
-	inputSchema: getInputSchema(schema),
-	annotations: {
-		title: 'Create savings goal',
-		readOnlyHint: false,
-	},
-};
-
-export async function handler(args: z.infer<typeof schema>, accessToken: string) {
-	const result = await makeStarlingApiCall(
-		`/api/v2/account/${args.accountUid}/savings-goals`,
-		accessToken,
-		'PUT',
+export function registerSavingsGoalCreate(server: McpServer, config: Config): void {
+	server.registerTool(
+		'savings_goal_create',
 		{
-			name: args.name,
-			currency: args.currency,
-			target: args.target,
+			title: 'Create savings goal',
+			description: 'Create a new savings goal',
+			inputSchema: {
+				...accountUid,
+				name: z.string().describe('Name of the savings goal'),
+				currency: z.string().describe('Currency code (e.g., GBP)'),
+				target: amount.optional().describe('Target amount for the savings goal'),
+			},
+			outputSchema: createOrUpdateSavingsGoalOutput,
+			annotations: {
+				readOnlyHint: false,
+			},
+		},
+		async ({accountUid, name, currency, target}) => {
+			const result = await makeStarlingApiCall(
+				`/api/v2/account/${accountUid}/savings-goals`,
+				config.accessToken,
+				'PUT',
+				{
+					name,
+					currency,
+					target,
+				},
+			);
+			return jsonResult(createOrUpdateSavingsGoalOutput.parse(result));
 		},
 	);
-	return {
-		content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
-	};
 }

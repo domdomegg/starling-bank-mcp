@@ -1,61 +1,55 @@
-import * as accountsList from './accounts-list.js';
-import * as accountBalanceGet from './account-balance-get.js';
-import * as transactionsList from './transactions-list.js';
-import * as accountHolderGet from './account-holder-get.js';
-import * as payeesList from './payees-list.js';
-import * as accountIdentifiersGet from './account-identifiers-get.js';
-import * as cardsList from './cards-list.js';
-import * as cardLockUpdate from './card-lock-update.js';
-import * as directDebitsList from './direct-debits-list.js';
-import * as standingOrdersList from './standing-orders-list.js';
-import * as feedItemGet from './feed-item-get.js';
-import * as feedItemSpendingCategoryUpdate from './feed-item-spending-category-update.js';
-import * as feedItemNoteUpdate from './feed-item-note-update.js';
-import * as feedItemAttachmentUpload from './feed-item-attachment-upload.js';
-import * as feedItemAttachmentDownload from './feed-item-attachment-download.js';
-import * as paymentCreate from './payment-create.js';
-import * as payeeCreate from './payee-create.js';
-import * as payeeDelete from './payee-delete.js';
-import * as savingsGoalsList from './savings-goals-list.js';
-import * as savingsGoalCreate from './savings-goal-create.js';
-import * as savingsGoalUpdate from './savings-goal-update.js';
-import * as savingsGoalDelete from './savings-goal-delete.js';
-import * as savingsGoalDeposit from './savings-goal-deposit.js';
-import * as savingsGoalWithdraw from './savings-goal-withdraw.js';
-import {type Result, type Tool} from '@modelcontextprotocol/sdk/types.js';
-import type z from 'zod';
+import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {Config} from './types.js';
+import {registerAccountsList} from './accounts-list.js';
+import {registerAccountBalanceGet} from './account-balance-get.js';
+import {registerTransactionsList} from './transactions-list.js';
+import {registerAccountHolderGet} from './account-holder-get.js';
+import {registerPayeesList} from './payees-list.js';
+import {registerAccountIdentifiersGet} from './account-identifiers-get.js';
+import {registerCardsList} from './cards-list.js';
+import {registerCardLockUpdate} from './card-lock-update.js';
+import {registerDirectDebitsList} from './direct-debits-list.js';
+import {registerStandingOrdersList} from './standing-orders-list.js';
+import {registerFeedItemGet} from './feed-item-get.js';
+import {registerFeedItemSpendingCategoryUpdate} from './feed-item-spending-category-update.js';
+import {registerFeedItemNoteUpdate} from './feed-item-note-update.js';
+import {registerFeedItemAttachmentUpload} from './feed-item-attachment-upload.js';
+import {registerFeedItemAttachmentDownload} from './feed-item-attachment-download.js';
+import {registerPaymentCreate} from './payment-create.js';
+import {registerPayeeCreate} from './payee-create.js';
+import {registerPayeeDelete} from './payee-delete.js';
+import {registerSavingsGoalsList} from './savings-goals-list.js';
+import {registerSavingsGoalCreate} from './savings-goal-create.js';
+import {registerSavingsGoalUpdate} from './savings-goal-update.js';
+import {registerSavingsGoalDelete} from './savings-goal-delete.js';
+import {registerSavingsGoalDeposit} from './savings-goal-deposit.js';
+import {registerSavingsGoalWithdraw} from './savings-goal-withdraw.js';
 
-export type ToolModule<S extends z.ZodType = z.ZodType> = {
-	tool: Tool;
-	handler: (args: z.infer<S>, accessToken: string) => Promise<Result>;
-	schema: S;
-};
+export type {Config} from './types.js';
 
-const toolModules = [
-	accountsList,
-	accountBalanceGet,
-	transactionsList,
-	accountHolderGet,
-	payeesList,
-	accountIdentifiersGet,
-	cardsList,
-	cardLockUpdate,
-	directDebitsList,
-	standingOrdersList,
-	feedItemGet,
-	feedItemSpendingCategoryUpdate,
-	feedItemNoteUpdate,
-	feedItemAttachmentUpload,
-	feedItemAttachmentDownload,
-	paymentCreate,
-	payeeCreate,
-	payeeDelete,
-	savingsGoalsList,
-	savingsGoalCreate,
-	savingsGoalUpdate,
-	savingsGoalDelete,
-	savingsGoalDeposit,
-	savingsGoalWithdraw,
-];
-
-export const tools: Record<string, ToolModule> = Object.fromEntries(toolModules.map((module) => [module.tool.name, module]));
+export function registerAll(server: McpServer, config: Config): void {
+	registerAccountsList(server, config);
+	registerAccountBalanceGet(server, config);
+	registerTransactionsList(server, config);
+	registerAccountHolderGet(server, config);
+	registerPayeesList(server, config);
+	registerAccountIdentifiersGet(server, config);
+	registerCardsList(server, config);
+	registerCardLockUpdate(server, config);
+	registerDirectDebitsList(server, config);
+	registerStandingOrdersList(server, config);
+	registerFeedItemGet(server, config);
+	registerFeedItemSpendingCategoryUpdate(server, config);
+	registerFeedItemNoteUpdate(server, config);
+	registerFeedItemAttachmentUpload(server, config);
+	registerFeedItemAttachmentDownload(server, config);
+	registerPaymentCreate(server, config);
+	registerPayeeCreate(server, config);
+	registerPayeeDelete(server, config);
+	registerSavingsGoalsList(server, config);
+	registerSavingsGoalCreate(server, config);
+	registerSavingsGoalUpdate(server, config);
+	registerSavingsGoalDelete(server, config);
+	registerSavingsGoalDeposit(server, config);
+	registerSavingsGoalWithdraw(server, config);
+}

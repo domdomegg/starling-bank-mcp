@@ -1,23 +1,42 @@
-import {type z} from 'zod';
-import {type Tool} from '@modelcontextprotocol/sdk/types.js';
-import {accountUidSchema, getInputSchema} from '../utils/schemas.js';
+import {z} from 'zod';
+import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {Config} from './types.js';
+import {accountUid} from './schemas.js';
 import {makeStarlingApiCall} from '../utils/starling-api.js';
+import {jsonResult} from '../utils/response.js';
 
-export const schema = accountUidSchema;
+const signedCurrencyAndAmount = z.object({
+	currency: z.string(),
+	minorUnits: z.number(),
+});
 
-export const tool: Tool = {
-	name: 'account_balance_get',
-	description: 'Get the balance for a specific account. Shows both cleared balance (settled transactions) and effective balance (including pending transactions).',
-	inputSchema: getInputSchema(schema),
-	annotations: {
-		title: 'Get account balance',
-		readOnlyHint: true,
-	},
-};
+const outputSchema = z.object({
+	clearedBalance: signedCurrencyAndAmount.optional(),
+	effectiveBalance: signedCurrencyAndAmount.optional(),
+	pendingTransactions: signedCurrencyAndAmount.optional(),
+	acceptedOverdraft: signedCurrencyAndAmount.optional(),
+	amount: signedCurrencyAndAmount.optional(),
+	totalClearedBalance: signedCurrencyAndAmount.optional(),
+	totalEffectiveBalance: signedCurrencyAndAmount.optional(),
+});
 
-export async function handler(args: z.infer<typeof schema>, accessToken: string) {
-	const result = await makeStarlingApiCall(`/api/v2/accounts/${args.accountUid}/balance`, accessToken);
-	return {
-		content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
-	};
+export function registerAccountBalanceGet(server: McpServer, config: Config): void {
+	server.registerTool(
+		'account_balance_get',
+		{
+			title: 'Get account balance',
+			description: 'Get the balance for a specific account. Shows both cleared balance (settled transactions) and effective balance (including pending transactions).',
+			inputSchema: {
+				...accountUid,
+			},
+			outputSchema,
+			annotations: {
+				readOnlyHint: true,
+			},
+		},
+		async ({accountUid}) => {
+			const result = await makeStarlingApiCall(`/api/v2/accounts/${accountUid}/balance`, config.accessToken);
+			return jsonResult(outputSchema.parse(result));
+		},
+	);
 }

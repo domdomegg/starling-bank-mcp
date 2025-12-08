@@ -1,6 +1,7 @@
 import {z} from 'zod';
-import {type Tool} from '@modelcontextprotocol/sdk/types.js';
-import {feedItemSchema, getInputSchema} from '../utils/schemas.js';
+import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {Config} from './types.js';
+import {feedItemUid} from './schemas.js';
 import {makeStarlingApiCall, makeStarlingApiCallForBinary} from '../utils/starling-api.js';
 
 // Function to detect image format from file headers
@@ -49,64 +50,66 @@ function detectImageFormat(buffer: Buffer): string {
 	return 'image/jpeg';
 }
 
-export const schema = feedItemSchema.extend({
-	feedItemAttachmentUid: z.string().describe('The feed item attachment UID'),
-});
+export function registerFeedItemAttachmentDownload(server: McpServer, config: Config): void {
+	server.registerTool(
+		'feed_item_attachment_download',
+		{
+			title: 'Download transaction attachment',
+			description: 'Download a specific attachment from a feed item (transaction). Returns the attachment as base64 encoded data.',
+			inputSchema: {
+				...feedItemUid,
+				feedItemAttachmentUid: z.string().describe('The feed item attachment UID'),
+			},
+			annotations: {
+				readOnlyHint: true,
+			},
+		},
+		async ({accountUid, categoryUid, feedItemUid, feedItemAttachmentUid}) => {
+			// First, get the attachment metadata to determine the type
+			const attachmentsList = await makeStarlingApiCall(
+				`/api/v2/feed/account/${accountUid}/category/${categoryUid}/${feedItemUid}/attachments`,
+				config.accessToken,
+			) as {feedItemAttachments?: {feedItemAttachmentUid: string; attachmentType?: string; feedItemAttachmentType?: string}[]};
 
-export const tool: Tool = {
-	name: 'feed_item_attachment_download',
-	description: 'Download a specific attachment from a feed item (transaction). Returns the attachment as base64 encoded data.',
-	inputSchema: getInputSchema(schema),
-	annotations: {
-		title: 'Download transaction attachment',
-		readOnlyHint: true,
-	},
-};
+			// Find the specific attachment to get its type
+			const attachment = attachmentsList.feedItemAttachments?.find((att) => att.feedItemAttachmentUid === feedItemAttachmentUid);
 
-export async function handler(args: z.infer<typeof schema>, accessToken: string) {
-	// First, get the attachment metadata to determine the type
-	const attachmentsList = await makeStarlingApiCall(
-		`/api/v2/feed/account/${args.accountUid}/category/${args.categoryUid}/${args.feedItemUid}/attachments`,
-		accessToken,
-	) as {feedItemAttachments?: {feedItemAttachmentUid: string; attachmentType?: string; feedItemAttachmentType?: string}[]};
+			// Download the attachment
+			const arrayBuffer = await makeStarlingApiCallForBinary(
+				`/api/v2/feed/account/${accountUid}/category/${categoryUid}/${feedItemUid}/attachments/${feedItemAttachmentUid}`,
+				config.accessToken,
+			);
 
-	// Find the specific attachment to get its type
-	const attachment = attachmentsList.feedItemAttachments?.find((att) => att.feedItemAttachmentUid === args.feedItemAttachmentUid);
+			// Convert ArrayBuffer to Buffer and then to base64
+			const buffer = Buffer.from(arrayBuffer);
+			const base64Data = buffer.toString('base64');
 
-	// Download the attachment
-	const arrayBuffer = await makeStarlingApiCallForBinary(
-		`/api/v2/feed/account/${args.accountUid}/category/${args.categoryUid}/${args.feedItemUid}/attachments/${args.feedItemAttachmentUid}`,
-		accessToken,
+			// Check if it's an image based on the attachment type
+			const isImage = attachment?.attachmentType === 'image'
+				|| attachment?.feedItemAttachmentType === 'IMAGE'
+				|| attachment?.feedItemAttachmentType === 'IMAGE, PDF'; // Handle mixed types
+
+			if (isImage) {
+				// Detect image format from file headers
+				const mimeType = detectImageFormat(buffer);
+
+				// Return as image content
+				return {
+					content: [{
+						type: 'image',
+						data: base64Data,
+						mimeType,
+					}],
+				};
+			}
+
+			// Return as text for PDFs and other file types
+			return {
+				content: [
+					{type: 'text', text: `Attachment type: ${attachment?.attachmentType || 'unknown'}`},
+					{type: 'text', text: base64Data},
+				],
+			};
+		},
 	);
-
-	// Convert ArrayBuffer to Buffer and then to base64
-	const buffer = Buffer.from(arrayBuffer);
-	const base64Data = buffer.toString('base64');
-
-	// Check if it's an image based on the attachment type
-	const isImage = attachment?.attachmentType === 'image'
-		|| attachment?.feedItemAttachmentType === 'IMAGE'
-		|| attachment?.feedItemAttachmentType === 'IMAGE, PDF'; // Handle mixed types
-
-	if (isImage) {
-		// Detect image format from file headers
-		const mimeType = detectImageFormat(buffer);
-
-		// Return as image content
-		return {
-			content: [{
-				type: 'image',
-				data: base64Data,
-				mimeType,
-			}],
-		};
-	}
-
-	// Return as text for PDFs and other file types
-	return {
-		content: [{
-			type: 'text',
-			text: `Attachment downloaded successfully (${attachment?.attachmentType || 'unknown type'}). Base64 data:\n${base64Data}`,
-		}],
-	};
 }

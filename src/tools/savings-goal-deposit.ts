@@ -1,31 +1,36 @@
-import {type z} from 'zod';
-import {type Tool} from '@modelcontextprotocol/sdk/types.js';
-import {savingsGoalTransferSchema, getInputSchema} from '../utils/schemas.js';
+import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {Config} from './types.js';
+import {savingsGoalUid, amount} from './schemas.js';
+import {savingsGoalTransferOutput} from './output-schemas.js';
 import {makeStarlingApiCall} from '../utils/starling-api.js';
+import {jsonResult} from '../utils/response.js';
 import {randomUUID} from 'node:crypto';
 
-export const schema = savingsGoalTransferSchema;
-
-export const tool: Tool = {
-	name: 'savings_goal_deposit',
-	description: 'Add money to a savings goal',
-	inputSchema: getInputSchema(schema),
-	annotations: {
-		title: 'Deposit to savings goal',
-		readOnlyHint: false,
-	},
-};
-
-export async function handler(args: z.infer<typeof schema>, accessToken: string) {
-	const result = await makeStarlingApiCall(
-		`/api/v2/account/${args.accountUid}/savings-goals/${args.savingsGoalUid}/add-money/${randomUUID()}`,
-		accessToken,
-		'PUT',
+export function registerSavingsGoalDeposit(server: McpServer, config: Config): void {
+	server.registerTool(
+		'savings_goal_deposit',
 		{
-			amount: args.amount,
+			title: 'Deposit to savings goal',
+			description: 'Add money to a savings goal',
+			inputSchema: {
+				...savingsGoalUid,
+				amount,
+			},
+			outputSchema: savingsGoalTransferOutput,
+			annotations: {
+				readOnlyHint: false,
+			},
+		},
+		async ({accountUid, savingsGoalUid, amount}) => {
+			const result = await makeStarlingApiCall(
+				`/api/v2/account/${accountUid}/savings-goals/${savingsGoalUid}/add-money/${randomUUID()}`,
+				config.accessToken,
+				'PUT',
+				{
+					amount,
+				},
+			);
+			return jsonResult(savingsGoalTransferOutput.parse(result));
 		},
 	);
-	return {
-		content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
-	};
 }

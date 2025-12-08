@@ -8,16 +8,17 @@
     "type": "git",
     "url": "https://github.com/domdomegg/starling-bank-mcp.git"
   },
-  "main": "dist/index.js",
+  "main": "dist/main.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
   "mcpName": "io.github.domdomegg/starling-bank-mcp",
   "scripts": {
-    "start": "npm run build && node ./dist/index.js",
-    "test": "STARLING_BANK_ACCESS_TOKEN=test-token vitest run",
-    "test:watch": "STARLING_BANK_ACCESS_TOKEN=test-token vitest --watch",
+    "start": "npm run build && node ./dist/main.js",
+    "start:http": "npm run build && MCP_TRANSPORT=http node ./dist/main.js",
+    "test": "STARLING_BANK_ACCESS_TOKEN=test-token STARLING_BANK_BASE_URL=http://127.0.0.1:4010 vitest run",
+    "test:watch": "STARLING_BANK_ACCESS_TOKEN=test-token STARLING_BANK_BASE_URL=http://127.0.0.1:4010 vitest --watch",
     "lint": "eslint",
     "clean": "rm -rf dist",
     "build": "tsc --project tsconfig.build.json",
@@ -25,17 +26,19 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "devDependencies": {
-    "@tsconfig/node-lts": "^22.0.2",
-    "@types/node": "^24.1.0",
-    "eslint": "^9.32.0",
+    "@stoplight/prism-cli": "^5.14.2",
+    "@tsconfig/node-lts": "^24.0.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.1",
     "eslint-config-domdomegg": "^2.0.9",
     "tsconfig-domdomegg": "^1.0.0",
-    "typescript": "^5.8.3",
-    "vitest": "^3.2.4"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.17.1",
-    "zod": "^3.25.76",
-    "zod-to-json-schema": "^3.24.6"
+    "@modelcontextprotocol/sdk": "^1.24.3",
+    "express": "^5.2.1",
+    "zod": "^4.1.13"
   }
 }

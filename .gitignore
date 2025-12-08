@@ -127,3 +127,4 @@ key-api-private.pem
 key-api-public.pem
 key-rotation-private.pem
 key-rotation-public.pem
+openapi.json
