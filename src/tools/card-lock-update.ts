@@ -3,6 +3,11 @@ import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {Config} from './types.js';
 import {cardUid} from './schemas.js';
 import {makeStarlingApiCall} from '../utils/starling-api.js';
+import {jsonResult} from '../utils/response.js';
+
+const outputSchema = z.object({
+	enabled: z.boolean().optional(),
+});
 
 export function registerCardLockUpdate(server: McpServer, config: Config): void {
 	server.registerTool(
@@ -14,6 +19,7 @@ export function registerCardLockUpdate(server: McpServer, config: Config): void 
 				...cardUid,
 				enabled: z.boolean().describe('Whether the card should be enabled (true) or disabled (false)'),
 			},
+			outputSchema,
 			annotations: {
 				readOnlyHint: false,
 			},
@@ -25,9 +31,7 @@ export function registerCardLockUpdate(server: McpServer, config: Config): void 
 				'PUT',
 				{enabled},
 			);
-			return {
-				content: [{type: 'text' as const, text: JSON.stringify(result, null, 2)}],
-			};
+			return jsonResult(outputSchema.parse(result));
 		},
 	);
 }

@@ -2,6 +2,15 @@ import {z} from 'zod';
 import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {Config} from './types.js';
 import {makeStarlingApiCall} from '../utils/starling-api.js';
+import {jsonResult} from '../utils/response.js';
+
+const outputSchema = z.object({
+	payeeUid: z.string().optional(),
+	success: z.boolean().optional(),
+	errors: z.array(z.object({
+		message: z.string().optional(),
+	})).optional(),
+});
 
 export function registerPayeeCreate(server: McpServer, config: Config): void {
 	server.registerTool(
@@ -18,6 +27,7 @@ export function registerPayeeCreate(server: McpServer, config: Config): void {
 				bankIdentifierType: z.enum(['SORT_CODE', 'SWIFT_BIC']).describe('Type of bank identifier'),
 				countryCode: z.string().describe('Country code (e.g., GB)'),
 			},
+			outputSchema,
 			annotations: {
 				readOnlyHint: false,
 			},
@@ -34,9 +44,7 @@ export function registerPayeeCreate(server: McpServer, config: Config): void {
 					countryCode,
 				}],
 			});
-			return {
-				content: [{type: 'text' as const, text: JSON.stringify(result, null, 2)}],
-			};
+			return jsonResult(outputSchema.parse(result));
 		},
 	);
 }

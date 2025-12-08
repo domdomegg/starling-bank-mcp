@@ -1,7 +1,9 @@
 import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {Config} from './types.js';
 import {savingsGoalUid, amount} from './schemas.js';
+import {savingsGoalTransferOutput} from './output-schemas.js';
 import {makeStarlingApiCall} from '../utils/starling-api.js';
+import {jsonResult} from '../utils/response.js';
 import {randomUUID} from 'node:crypto';
 
 export function registerSavingsGoalDeposit(server: McpServer, config: Config): void {
@@ -14,6 +16,7 @@ export function registerSavingsGoalDeposit(server: McpServer, config: Config): v
 				...savingsGoalUid,
 				amount,
 			},
+			outputSchema: savingsGoalTransferOutput,
 			annotations: {
 				readOnlyHint: false,
 			},
@@ -27,9 +30,7 @@ export function registerSavingsGoalDeposit(server: McpServer, config: Config): v
 					amount,
 				},
 			);
-			return {
-				content: [{type: 'text' as const, text: JSON.stringify(result, null, 2)}],
-			};
+			return jsonResult(savingsGoalTransferOutput.parse(result));
 		},
 	);
 }

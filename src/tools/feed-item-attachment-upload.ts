@@ -4,6 +4,11 @@ import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {Config} from './types.js';
 import {feedItemUid} from './schemas.js';
 import {makeStarlingApiCallWithBinary} from '../utils/starling-api.js';
+import {jsonResult} from '../utils/response.js';
+
+const outputSchema = z.object({
+	feedItemAttachmentUid: z.string().optional(),
+});
 
 export function registerFeedItemAttachmentUpload(server: McpServer, config: Config): void {
 	server.registerTool(
@@ -17,19 +22,18 @@ export function registerFeedItemAttachmentUpload(server: McpServer, config: Conf
 				filePath: z.string().optional().describe('Option 1: Path to file on disk (recommended)'),
 				attachmentData: z.string().optional().describe('Option 2: Base64 encoded attachment data'),
 			},
+			outputSchema,
 			annotations: {
 				readOnlyHint: false,
 			},
 		},
 		async ({accountUid, categoryUid, feedItemUid, contentType, filePath, attachmentData}) => {
 			let binaryData: Buffer;
-			let source: string;
 
 			if (filePath) {
 				// Read file from disk
 				try {
 					binaryData = readFileSync(filePath);
-					source = `file: ${filePath}`;
 				} catch (error) {
 					throw new Error(`Failed to read file from path "${filePath}": ${error instanceof Error ? error.message : String(error)}`);
 				}
@@ -37,7 +41,6 @@ export function registerFeedItemAttachmentUpload(server: McpServer, config: Conf
 				// Convert base64 to buffer
 				try {
 					binaryData = Buffer.from(attachmentData, 'base64');
-					source = 'base64 data';
 				} catch (error) {
 					throw new Error(`Failed to decode base64 attachment data: ${error instanceof Error ? error.message : String(error)}`);
 				}
@@ -52,9 +55,7 @@ export function registerFeedItemAttachmentUpload(server: McpServer, config: Conf
 				contentType,
 			);
 
-			return {
-				content: [{type: 'text' as const, text: `Attachment uploaded successfully from ${source}. Attachment UID: ${JSON.stringify(result)}`}],
-			};
+			return jsonResult(outputSchema.parse(result));
 		},
 	);
 }

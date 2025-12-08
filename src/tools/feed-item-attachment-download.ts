@@ -96,7 +96,7 @@ export function registerFeedItemAttachmentDownload(server: McpServer, config: Co
 				// Return as image content
 				return {
 					content: [{
-						type: 'image' as const,
+						type: 'image',
 						data: base64Data,
 						mimeType,
 					}],
@@ -105,10 +105,10 @@ export function registerFeedItemAttachmentDownload(server: McpServer, config: Co
 
 			// Return as text for PDFs and other file types
 			return {
-				content: [{
-					type: 'text' as const,
-					text: `Attachment downloaded successfully (${attachment?.attachmentType || 'unknown type'}). Base64 data:\n${base64Data}`,
-				}],
+				content: [
+					{type: 'text', text: `Attachment type: ${attachment?.attachmentType || 'unknown'}`},
+					{type: 'text', text: base64Data},
+				],
 			};
 		},
 	);

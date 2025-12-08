@@ -3,7 +3,12 @@ import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {Config} from './types.js';
 import {categoryUid, amount} from './schemas.js';
 import {makeSignedStarlingApiCall} from '../utils/starling-api.js';
+import {jsonResult} from '../utils/response.js';
 import {randomUUID} from 'node:crypto';
+
+const outputSchema = z.object({
+	paymentOrderUid: z.string().optional(),
+});
 
 export function registerPaymentCreate(server: McpServer, config: Config): void {
 	server.registerTool(
@@ -17,6 +22,7 @@ export function registerPaymentCreate(server: McpServer, config: Config): void {
 				reference: z.string().describe('Payment reference'),
 				amount,
 			},
+			outputSchema,
 			annotations: {
 				readOnlyHint: false,
 			},
@@ -33,9 +39,7 @@ export function registerPaymentCreate(server: McpServer, config: Config): void {
 					externalIdentifier: randomUUID(),
 				},
 			);
-			return {
-				content: [{type: 'text' as const, text: JSON.stringify(result, null, 2)}],
-			};
+			return jsonResult(outputSchema.parse(result));
 		},
 	);
 }

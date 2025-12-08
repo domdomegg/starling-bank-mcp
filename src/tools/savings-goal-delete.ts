@@ -1,7 +1,13 @@
+import {z} from 'zod';
 import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {Config} from './types.js';
 import {savingsGoalUid} from './schemas.js';
 import {makeStarlingApiCall} from '../utils/starling-api.js';
+import {jsonResult} from '../utils/response.js';
+
+const outputSchema = z.object({
+	success: z.boolean().optional(),
+});
 
 export function registerSavingsGoalDelete(server: McpServer, config: Config): void {
 	server.registerTool(
@@ -12,6 +18,7 @@ export function registerSavingsGoalDelete(server: McpServer, config: Config): vo
 			inputSchema: {
 				...savingsGoalUid,
 			},
+			outputSchema,
 			annotations: {
 				readOnlyHint: false,
 			},
@@ -22,9 +29,7 @@ export function registerSavingsGoalDelete(server: McpServer, config: Config): vo
 				config.accessToken,
 				'DELETE',
 			);
-			return {
-				content: [{type: 'text' as const, text: JSON.stringify(result, null, 2)}],
-			};
+			return jsonResult(outputSchema.parse(result));
 		},
 	);
 }

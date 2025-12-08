@@ -17,8 +17,8 @@
   "scripts": {
     "start": "npm run build && node ./dist/main.js",
     "start:http": "npm run build && MCP_TRANSPORT=http node ./dist/main.js",
-    "test": "STARLING_BANK_ACCESS_TOKEN=test-token vitest run",
-    "test:watch": "STARLING_BANK_ACCESS_TOKEN=test-token vitest --watch",
+    "test": "STARLING_BANK_ACCESS_TOKEN=test-token STARLING_BANK_BASE_URL=http://127.0.0.1:4010 vitest run",
+    "test:watch": "STARLING_BANK_ACCESS_TOKEN=test-token STARLING_BANK_BASE_URL=http://127.0.0.1:4010 vitest --watch",
     "lint": "eslint",
     "clean": "rm -rf dist",
     "build": "tsc --project tsconfig.build.json",
@@ -26,6 +26,7 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "devDependencies": {
+    "@stoplight/prism-cli": "^5.14.2",
     "@tsconfig/node-lts": "^24.0.0",
     "@types/express": "^5.0.6",
     "@types/node": "^24.10.1",
