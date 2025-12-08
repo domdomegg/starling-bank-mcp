@@ -7,7 +7,7 @@ export type {Config} from './tools/index.js';
 export function createServer(config: Config): McpServer {
 	const server = new McpServer({
 		name: 'starling-bank-mcp',
-		version: '1.1.0',
+		version: '1.0.0',
 	});
 
 	registerAll(server, config);
