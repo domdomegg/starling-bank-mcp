@@ -1,40 +1,34 @@
-import {type z} from 'zod';
-import {type Tool} from '@modelcontextprotocol/sdk/types.js';
-import {baseSchema, getInputSchema} from '../utils/schemas.js';
+import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {Config} from './types.js';
 import {makeStarlingApiCall} from '../utils/starling-api.js';
 
-export const schema = baseSchema;
+export function registerAccountHolderGet(server: McpServer, config: Config): void {
+	server.registerTool(
+		'account_holder_get',
+		{
+			title: 'Get account holder details',
+			description: 'Get detailed information about the logged in account holder including name, address, and other personal details.',
+			inputSchema: {},
+			annotations: {
+				readOnlyHint: true,
+			},
+		},
+		async () => {
+			const [basicInfo, nameInfo, individualInfo] = await Promise.all([
+				makeStarlingApiCall('/api/v2/account-holder', config.accessToken),
+				makeStarlingApiCall('/api/v2/account-holder/name', config.accessToken),
+				makeStarlingApiCall('/api/v2/account-holder/individual', config.accessToken),
+			]);
 
-export const tool: Tool = {
-	name: 'account_holder_get',
-	description: 'Get detailed information about the logged in account holder including name, address, and other personal details.',
-	inputSchema: getInputSchema(schema),
-	annotations: {
-		title: 'Get account holder details',
-		readOnlyHint: true,
-	},
-};
+			const combined = {
+				basicInfo,
+				accountHolderName: nameInfo,
+				individualDetails: individualInfo,
+			};
 
-export async function handler(args: z.infer<typeof schema>, accessToken: string) {
-	try {
-		const [basicInfo, nameInfo, individualInfo] = await Promise.all([
-			makeStarlingApiCall('/api/v2/account-holder', accessToken),
-			makeStarlingApiCall('/api/v2/account-holder/name', accessToken),
-			makeStarlingApiCall('/api/v2/account-holder/individual', accessToken),
-		]);
-
-		const combined = {
-			basicInfo,
-			accountHolderName: nameInfo,
-			individualDetails: individualInfo,
-		};
-
-		return {
-			content: [{type: 'text', text: JSON.stringify(combined, null, 2)}],
-		};
-	} catch (error) {
-		return {
-			content: [{type: 'text', text: `Error fetching account holder details: ${String(error)}`}],
-		};
-	}
+			return {
+				content: [{type: 'text' as const, text: JSON.stringify(combined, null, 2)}],
+			};
+		},
+	);
 }

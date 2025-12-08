@@ -1,27 +1,30 @@
-import {type z} from 'zod';
-import {type Tool} from '@modelcontextprotocol/sdk/types.js';
-import {savingsGoalSchema, getInputSchema} from '../utils/schemas.js';
+import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {Config} from './types.js';
+import {savingsGoalUid} from './schemas.js';
 import {makeStarlingApiCall} from '../utils/starling-api.js';
 
-export const schema = savingsGoalSchema;
-
-export const tool: Tool = {
-	name: 'savings_goal_delete',
-	description: 'Delete a savings goal',
-	inputSchema: getInputSchema(schema),
-	annotations: {
-		title: 'Delete savings goal',
-		readOnlyHint: false,
-	},
-};
-
-export async function handler(args: z.infer<typeof schema>, accessToken: string) {
-	const result = await makeStarlingApiCall(
-		`/api/v2/account/${args.accountUid}/savings-goals/${args.savingsGoalUid}`,
-		accessToken,
-		'DELETE',
+export function registerSavingsGoalDelete(server: McpServer, config: Config): void {
+	server.registerTool(
+		'savings_goal_delete',
+		{
+			title: 'Delete savings goal',
+			description: 'Delete a savings goal',
+			inputSchema: {
+				...savingsGoalUid,
+			},
+			annotations: {
+				readOnlyHint: false,
+			},
+		},
+		async ({accountUid, savingsGoalUid}) => {
+			const result = await makeStarlingApiCall(
+				`/api/v2/account/${accountUid}/savings-goals/${savingsGoalUid}`,
+				config.accessToken,
+				'DELETE',
+			);
+			return {
+				content: [{type: 'text' as const, text: JSON.stringify(result, null, 2)}],
+			};
+		},
 	);
-	return {
-		content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
-	};
 }

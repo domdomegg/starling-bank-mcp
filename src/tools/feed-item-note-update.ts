@@ -1,28 +1,33 @@
-import {type z} from 'zod';
-import {type Tool} from '@modelcontextprotocol/sdk/types.js';
-import {updateUserNoteSchema, getInputSchema} from '../utils/schemas.js';
+import {z} from 'zod';
+import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {Config} from './types.js';
+import {feedItemUid} from './schemas.js';
 import {makeStarlingApiCall} from '../utils/starling-api.js';
 
-export const schema = updateUserNoteSchema;
-
-export const tool: Tool = {
-	name: 'feed_item_note_update',
-	description: 'Update the user note for a transaction',
-	inputSchema: getInputSchema(schema),
-	annotations: {
-		title: 'Update transaction note',
-		readOnlyHint: false,
-	},
-};
-
-export async function handler(args: z.infer<typeof schema>, accessToken: string) {
-	const result = await makeStarlingApiCall(
-		`/api/v2/feed/account/${args.accountUid}/category/${args.categoryUid}/${args.feedItemUid}/user-note`,
-		accessToken,
-		'PUT',
-		{userNote: args.userNote},
+export function registerFeedItemNoteUpdate(server: McpServer, config: Config): void {
+	server.registerTool(
+		'feed_item_note_update',
+		{
+			title: 'Update transaction note',
+			description: 'Update the user note for a transaction',
+			inputSchema: {
+				...feedItemUid,
+				userNote: z.string().describe('The user note to set for this transaction'),
+			},
+			annotations: {
+				readOnlyHint: false,
+			},
+		},
+		async ({accountUid, categoryUid, feedItemUid, userNote}) => {
+			const result = await makeStarlingApiCall(
+				`/api/v2/feed/account/${accountUid}/category/${categoryUid}/${feedItemUid}/user-note`,
+				config.accessToken,
+				'PUT',
+				{userNote},
+			);
+			return {
+				content: [{type: 'text' as const, text: JSON.stringify(result, null, 2)}],
+			};
+		},
 	);
-	return {
-		content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
-	};
 }

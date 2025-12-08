@@ -1,28 +1,33 @@
-import {type z} from 'zod';
-import {type Tool} from '@modelcontextprotocol/sdk/types.js';
-import {updateSpendingCategorySchema, getInputSchema} from '../utils/schemas.js';
+import {z} from 'zod';
+import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {Config} from './types.js';
+import {feedItemUid} from './schemas.js';
 import {makeStarlingApiCall} from '../utils/starling-api.js';
 
-export const schema = updateSpendingCategorySchema;
-
-export const tool: Tool = {
-	name: 'feed_item_spending_category_update',
-	description: 'Update the spending category for a transaction',
-	inputSchema: getInputSchema(schema),
-	annotations: {
-		title: 'Update transaction spending category',
-		readOnlyHint: false,
-	},
-};
-
-export async function handler(args: z.infer<typeof schema>, accessToken: string) {
-	const result = await makeStarlingApiCall(
-		`/api/v2/feed/account/${args.accountUid}/category/${args.categoryUid}/${args.feedItemUid}/spending-category`,
-		accessToken,
-		'PUT',
-		{spendingCategory: args.spendingCategory},
+export function registerFeedItemSpendingCategoryUpdate(server: McpServer, config: Config): void {
+	server.registerTool(
+		'feed_item_spending_category_update',
+		{
+			title: 'Update transaction spending category',
+			description: 'Update the spending category for a transaction',
+			inputSchema: {
+				...feedItemUid,
+				spendingCategory: z.string().describe('The spending category to set'),
+			},
+			annotations: {
+				readOnlyHint: false,
+			},
+		},
+		async ({accountUid, categoryUid, feedItemUid, spendingCategory}) => {
+			const result = await makeStarlingApiCall(
+				`/api/v2/feed/account/${accountUid}/category/${categoryUid}/${feedItemUid}/spending-category`,
+				config.accessToken,
+				'PUT',
+				{spendingCategory},
+			);
+			return {
+				content: [{type: 'text' as const, text: JSON.stringify(result, null, 2)}],
+			};
+		},
 	);
-	return {
-		content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
-	};
 }

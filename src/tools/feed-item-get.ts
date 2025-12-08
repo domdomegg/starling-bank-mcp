@@ -1,46 +1,49 @@
-import {type z} from 'zod';
-import {type Tool} from '@modelcontextprotocol/sdk/types.js';
-import {feedItemSchema, getInputSchema} from '../utils/schemas.js';
+import type {McpServer} from '@modelcontextprotocol/sdk/server/mcp.js';
+import type {Config} from './types.js';
+import {feedItemUid} from './schemas.js';
 import {makeStarlingApiCall} from '../utils/starling-api.js';
 
-export const schema = feedItemSchema;
+export function registerFeedItemGet(server: McpServer, config: Config): void {
+	server.registerTool(
+		'feed_item_get',
+		{
+			title: 'Get transaction details',
+			description: 'Get details of a specific feed item (transaction) including any attachments',
+			inputSchema: {
+				...feedItemUid,
+			},
+			annotations: {
+				readOnlyHint: true,
+			},
+		},
+		async ({accountUid, categoryUid, feedItemUid}) => {
+			// Get the feed item details
+			const feedItem = await makeStarlingApiCall(
+				`/api/v2/feed/account/${accountUid}/category/${categoryUid}/${feedItemUid}`,
+				config.accessToken,
+			);
 
-export const tool: Tool = {
-	name: 'feed_item_get',
-	description: 'Get details of a specific feed item (transaction) including any attachments',
-	inputSchema: getInputSchema(schema),
-	annotations: {
-		title: 'Get transaction details',
-		readOnlyHint: true,
-	},
-};
+			// Get the attachments for this feed item
+			let attachments: {feedItemAttachments?: unknown[]} = {feedItemAttachments: []};
+			try {
+				attachments = await makeStarlingApiCall(
+					`/api/v2/feed/account/${accountUid}/category/${categoryUid}/${feedItemUid}/attachments`,
+					config.accessToken,
+				) as {feedItemAttachments?: unknown[]};
+			} catch {
+				// If attachments endpoint fails, continue without attachments
+				attachments = {feedItemAttachments: []};
+			}
 
-export async function handler(args: z.infer<typeof schema>, accessToken: string) {
-	// Get the feed item details
-	const feedItem = await makeStarlingApiCall(
-		`/api/v2/feed/account/${args.accountUid}/category/${args.categoryUid}/${args.feedItemUid}`,
-		accessToken,
+			// Combine the results
+			const result = {
+				...(feedItem as Record<string, unknown>),
+				attachments: attachments.feedItemAttachments || [],
+			};
+
+			return {
+				content: [{type: 'text' as const, text: JSON.stringify(result, null, 2)}],
+			};
+		},
 	);
-
-	// Get the attachments for this feed item
-	let attachments: {feedItemAttachments?: unknown[]} = {feedItemAttachments: []};
-	try {
-		attachments = await makeStarlingApiCall(
-			`/api/v2/feed/account/${args.accountUid}/category/${args.categoryUid}/${args.feedItemUid}/attachments`,
-			accessToken,
-		) as {feedItemAttachments?: unknown[]};
-	} catch {
-		// If attachments endpoint fails, continue without attachments
-		attachments = {feedItemAttachments: []};
-	}
-
-	// Combine the results
-	const result = {
-		...(feedItem as Record<string, unknown>),
-		attachments: attachments.feedItemAttachments || [],
-	};
-
-	return {
-		content: [{type: 'text', text: JSON.stringify(result, null, 2)}],
-	};
 }
