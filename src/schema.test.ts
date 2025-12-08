@@ -2,6 +2,7 @@
  * Tests against Prism mock server to validate output schemas match OpenAPI spec.
  */
 import {spawn, type ChildProcess} from 'node:child_process';
+import {writeFileSync, existsSync} from 'node:fs';
 import {
 	describe, test, expect, beforeAll, afterAll,
 } from 'vitest';
@@ -10,6 +11,8 @@ import {InMemoryTransport} from '@modelcontextprotocol/sdk/inMemory.js';
 import type {JSONRPCMessage, JSONRPCRequest, JSONRPCResponse} from '@modelcontextprotocol/sdk/types.js';
 import {createServer} from './server.js';
 
+const OPENAPI_URL = 'https://api.starlingbank.com/api/openapi.json';
+const OPENAPI_PATH = 'openapi.json';
 const TOKEN = process.env.STARLING_BANK_ACCESS_TOKEN || 'test-token';
 
 // Test UUIDs from OpenAPI examples
@@ -22,8 +25,15 @@ let closeServer: () => Promise<void>;
 
 describe('Output schema validation', () => {
 	beforeAll(async () => {
+		// Download OpenAPI spec if not cached
+		if (!existsSync(OPENAPI_PATH)) {
+			const response = await fetch(OPENAPI_URL);
+			const spec = await response.text();
+			writeFileSync(OPENAPI_PATH, spec);
+		}
+
 		// Start Prism mock server
-		prism = spawn('npx', ['prism', 'mock', 'openapi.json', '-p', '4010'], {
+		prism = spawn('npx', ['prism', 'mock', OPENAPI_PATH, '-p', '4010'], {
 			stdio: 'pipe',
 		});
 
