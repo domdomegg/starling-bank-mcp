@@ -112,6 +112,19 @@ Create either a global (`~/.cursor/mcp.json`) or project-specific (`.cursor/mcp.
 }
 ```
 
+## Advanced: HTTP Transport
+
+By default, the server uses stdio transport (for Claude Desktop, Cursor, etc.). You can also run it as an HTTP server:
+
+```bash
+STARLING_BANK_ACCESS_TOKEN=eyJhb... MCP_TRANSPORT=http PORT=3000 npx starling-bank-mcp
+```
+
+The MCP endpoint will be available at `http://localhost:3000/mcp`.
+
+> [!WARNING]
+> The HTTP transport has no authentication. Other processes on your machine—including websites in your browser—could potentially access the endpoint and control your bank account. Only use HTTP transport behind a reverse proxy or in another secured setup.
+
 ## Contributing
 
 Pull requests are welcomed on GitHub! To get started:
