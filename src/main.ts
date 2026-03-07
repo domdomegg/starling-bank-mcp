@@ -36,7 +36,7 @@ const transport = process.env.MCP_TRANSPORT || 'stdio';
 		console.error('Starling Bank MCP server running on stdio');
 	} else if (transport === 'http') {
 		const app = express();
-		app.use(express.json());
+		app.use(express.json({limit: '20mb'}));
 
 		const httpTransport = new StreamableHTTPServerTransport({
 			sessionIdGenerator: undefined,
