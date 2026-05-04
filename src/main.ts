@@ -35,20 +35,23 @@ const transport = process.env.MCP_TRANSPORT || 'stdio';
 		await server.connect(stdioTransport);
 		console.error('Starling Bank MCP server running on stdio');
 	} else if (transport === 'http') {
+		const accessToken = getAccessToken();
 		const app = express();
 		app.use(express.json({limit: '20mb'}));
 
-		const httpTransport = new StreamableHTTPServerTransport({
-			sessionIdGenerator: undefined,
-			enableJsonResponse: true,
-		});
-
+		// Stateless: fresh server + transport per request — sharing either misroutes responses on concurrent requests with colliding JSON-RPC IDs (GHSA-345p-7cg4-v4c7).
 		app.post('/mcp', async (req, res) => {
+			const server = createServer({accessToken});
+			const httpTransport = new StreamableHTTPServerTransport({
+				sessionIdGenerator: undefined,
+				enableJsonResponse: true,
+			});
+			res.on('close', () => {
+				void server.close();
+			});
+			await server.connect(httpTransport);
 			await httpTransport.handleRequest(req, res, req.body);
 		});
-
-		const server = createServer({accessToken: getAccessToken()});
-		await server.connect(httpTransport);
 
 		const port = parseInt(process.env.PORT || '3000', 10);
 		const httpServer = app.listen(port, () => {
@@ -57,7 +60,6 @@ const transport = process.env.MCP_TRANSPORT || 'stdio';
 		});
 
 		setupSignalHandlers(async () => {
-			await server.close();
 			httpServer.close();
 		});
 	} else {
