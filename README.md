@@ -11,7 +11,7 @@ This is a 3rd party integration, and is not affiliated with Starling Bank.
 
 ## Installation
 
-Follow the up-to-date instructions on [install-mcp](https://adamjones.me/install-mcp/?config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsInN0YXJsaW5nLWJhbmstbWNwIl0sIm5hbWUiOiJzdGFybGluZy1iYW5rIiwiZW52Ijp7IlNUQVJMSU5HX0JBTktfQUNDRVNTX1RPS0VOIjoiZXlKaGIuLi4ifX0=), which generates the right config for your MCP client (Claude Code, Claude Desktop, Cursor, Cline, VS Code, and more).
+Follow the instructions on [install-mcp](https://adamjones.me/install-mcp/?config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsInN0YXJsaW5nLWJhbmstbWNwIl0sIm5hbWUiOiJzdGFybGluZy1iYW5rIiwiZW52Ijp7IlNUQVJMSU5HX0JBTktfQUNDRVNTX1RPS0VOIjoiZXlKaGIuLi4ifX0=), which generates the right config for your MCP client (Claude Code, Claude Desktop, Cursor, Cline, VS Code, and more).
 
 You'll need a Starling Bank personal access token. To create one:
 - [Sign up for a Starling Developers account](https://developer.starlingbank.com/signup)
