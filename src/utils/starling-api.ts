@@ -43,7 +43,18 @@ async function parseResponse(response: Response): Promise<unknown> {
 		}
 	}
 
-	return (await response.text()) || 'Success';
+	// Non-JSON responses. Mutating endpoints (e.g. spending-category / note
+	// updates, deletes) reply 204 No Content with no content-type, so there is
+	// no body to return. Callers validate against object output schemas, so
+	// return the same success object as the empty-JSON case rather than a bare
+	// string - otherwise a successful call fails schema validation and is
+	// reported as an error despite the action having been applied.
+	const text = await response.text();
+	if (!text.trim()) {
+		return {success: true, message: 'Operation completed successfully'};
+	}
+
+	return text;
 }
 
 // Function to create message signature for payment endpoints
