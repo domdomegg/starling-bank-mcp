@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import {StdioServerTransport} from '@modelcontextprotocol/sdk/server/stdio.js';
 import {StreamableHTTPServerTransport} from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import type {Transport} from '@modelcontextprotocol/sdk/shared/transport.js';
 import express from 'express';
 import {createServer} from './index.js';
 
@@ -32,7 +33,7 @@ const transport = process.env.MCP_TRANSPORT || 'stdio';
 		setupSignalHandlers(async () => server.close());
 
 		const stdioTransport = new StdioServerTransport();
-		await server.connect(stdioTransport);
+		await server.connect(stdioTransport as Transport);
 		console.error('Starling Bank MCP server running on stdio');
 	} else if (transport === 'http') {
 		const accessToken = getAccessToken();
@@ -43,13 +44,12 @@ const transport = process.env.MCP_TRANSPORT || 'stdio';
 		app.post('/mcp', async (req, res) => {
 			const server = createServer({accessToken});
 			const httpTransport = new StreamableHTTPServerTransport({
-				sessionIdGenerator: undefined,
 				enableJsonResponse: true,
 			});
 			res.on('close', () => {
 				void server.close();
 			});
-			await server.connect(httpTransport);
+			await server.connect(httpTransport as Transport);
 			await httpTransport.handleRequest(req, res, req.body);
 		});
 
